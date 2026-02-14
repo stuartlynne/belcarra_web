@@ -30,40 +30,114 @@
   <main class="section">
     <div class="wrap prose">
       <h1>Protocols</h1>
-      <p>Belcarra USBLAN supports industry-standard USB networking protocol families and automatically matches the protocol offered by the attached device.</p>
+      <p>Belcarra USBLAN for Windows supports a range of networking-over-USB protocols and recognizes the protocol offered by the attached device (NCM, EEM, ECM, RNDIS).</p>
+
+      <h2>Networking over USB protocol comparisons</h2>
+      <p>Networking-over-USB protocols allow a USB device to provide network access to a host, or to receive network access from a host, by transferring network frames over USB bulk endpoints.</p>
+      <p>The primary protocols covered in USBLAN deployments are:</p>
       <ul>
-        <li>CDC-NCM</li>
-        <li>CDC-EEM</li>
+        <li>Simple</li>
         <li>CDC-ECM</li>
+        <li>CDC-EEM</li>
+        <li>CDC-NCM</li>
         <li>RNDIS</li>
       </ul>
 
-      <h2>Multi-frame transfer behavior</h2>
-      <p>EEM, NCM, and RNDIS support aggregation of multiple network frames in a single USB transfer. This generally improves bus utilization and throughput compared with single-frame transfer patterns.</p>
-      <ul>
-        <li>ECM transfer size behavior is fixed.</li>
-        <li>EEM does not prescribe fixed transfer sizes and requires proper transfer termination behavior.</li>
-        <li>NCM and RNDIS allow negotiated/configurable operating behavior during setup and control exchange.</li>
-      </ul>
+      <table>
+        <caption>Primary protocol characteristics (summary)</caption>
+        <thead>
+          <tr>
+            <th>Characteristic</th>
+            <th>Simple</th>
+            <th>CDC-ECM</th>
+            <th>CDC-EEM</th>
+            <th>CDC-NCM</th>
+            <th>RNDIS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Bulk IN/OUT endpoints</th>
+            <td>Yes</td>
+            <td>Yes</td>
+            <td>Yes</td>
+            <td>Yes</td>
+            <td>Yes</td>
+          </tr>
+          <tr>
+            <th scope="row">Interrupt endpoint</th>
+            <td>Optional</td>
+            <td>Yes</td>
+            <td>No</td>
+            <td>Yes</td>
+            <td>Yes</td>
+          </tr>
+          <tr>
+            <th scope="row">Configuration requests</th>
+            <td>Set Interface</td>
+            <td>Set Interface</td>
+            <td>Minimal</td>
+            <td>NCM device requests</td>
+            <td>Encapsulated command/response</td>
+          </tr>
+          <tr>
+            <th scope="row">Maximum transfer behavior</th>
+            <td>Fixed (1510)</td>
+            <td>Fixed (1510)</td>
+            <td>Not defined</td>
+            <td>Configurable</td>
+            <td>Configurable</td>
+          </tr>
+          <tr>
+            <th scope="row">Multi-frame support</th>
+            <td>No</td>
+            <td>No</td>
+            <td>Supported, implementation-dependent</td>
+            <td>Supported and negotiated</td>
+            <td>Supported and negotiated</td>
+          </tr>
+          <tr>
+            <th scope="row">Typical one-way TCP stream</th>
+            <td>~10 MB/s</td>
+            <td>~10 MB/s</td>
+            <td>~16 MB/s</td>
+            <td>~16 MB/s</td>
+            <td>~16 MB/s</td>
+          </tr>
+          <tr>
+            <th scope="row">Best observed one-way TCP stream</th>
+            <td>~10 MB/s</td>
+            <td>~10 MB/s</td>
+            <td>~28 MB/s</td>
+            <td>~28 MB/s</td>
+            <td>~28 MB/s</td>
+          </tr>
+        </tbody>
+      </table>
 
-      <h2>Protocol notes</h2>
+      <h2>Protocol details</h2>
+      <h3>Simple</h3>
+      <p>The Simple configuration is a streamlined variant of CDC-ECM that removes the interrupt endpoint requirement and uses default data interface behavior. This avoids requiring a Set Interface request to enable data flow.</p>
+
       <h3>CDC-ECM</h3>
-      <p>ECM is an early standardized USB networking model. It uses notification behavior and interface control semantics that are broadly compatible with existing host networking stacks.</p>
+      <p>CDC-ECM is the earliest standardized networking-over-USB protocol. It uses notifications on an interrupt endpoint for network and speed changes and was designed around bandwidth behavior on older USB host environments.</p>
 
       <h3>CDC-EEM</h3>
-      <p>EEM simplifies parts of configuration and allows multiple Ethernet frames in one USB transfer. Throughput gains depend on correct frame aggregation support on both host and device implementations.</p>
+      <p>CDC-EEM simplified control configuration and introduced the option to send multiple network frames within a single USB bulk transfer. Because EEM does not define expected transfer sizes, robust multi-frame support is implementation-dependent.</p>
 
       <h3>CDC-NCM</h3>
-      <p>NCM is a successor model to ECM for higher efficiency, with frame encapsulation designed for multi-frame transfer and additional device requests for capability/configuration control.</p>
+      <p>CDC-NCM is the logical successor to ECM. It retains ECM-style configuration and adds encapsulation for multi-frame USB transfers, plus additional device requests that allow hosts and devices to negotiate behavior such as transfer sizing and frame handling.</p>
 
       <h3>RNDIS</h3>
-      <p>RNDIS remains widely used in production systems and is supported in USBLAN alongside CDC protocol options for interoperability flexibility.</p>
+      <p>RNDIS uses Microsoft NDIS control semantics over encapsulated commands/responses and supports multi-frame operation in bulk transfers. Operational limits such as transfer sizes and frame counts are established during RNDIS initialization.</p>
 
-      <h2>Integration guidance</h2>
+      <h2>Multi-frame support</h2>
+      <p>EEM, NCM, and RNDIS can aggregate multiple network frames into one USB bulk transfer. Aggregation can significantly improve throughput by amortizing USB and driver-level transfer overhead across more than one network frame.</p>
+      <p>In practice, multi-frame behavior needs tuning: too much aggregation can add latency because contained frames are only forwarded after the transfer is received. Runtime heuristics are typically used to optimize throughput while keeping latency bounded.</p>
       <ul>
-        <li>Select one protocol strategy per product line where possible to minimize support complexity.</li>
-        <li>Validate host and gadget/device behavior under sustained transfer and reconnect cycles.</li>
-        <li>Document protocol-specific limits in your OEM integration notes and release documentation.</li>
+        <li>ECM transfer size behavior is fixed.</li>
+        <li>EEM does not prescribe fixed transfer sizes and must terminate transfers correctly with short packets.</li>
+        <li>NCM and RNDIS allow negotiated/configurable behavior during setup and control exchange.</li>
       </ul>
     </div>
   </main>
