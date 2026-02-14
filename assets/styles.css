@@ -235,6 +235,38 @@ h2 {
   font-family: "IBM Plex Mono", "Consolas", "Courier New", monospace;
 }
 
+
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0 1.2rem;
+  font-size: 0.92rem;
+}
+
+.prose caption {
+  caption-side: top;
+  text-align: left;
+  font-weight: 600;
+  margin-bottom: 0.45rem;
+}
+
+.prose th,
+.prose td {
+  border: 1px solid var(--line);
+  padding: 0.45rem 0.55rem;
+  vertical-align: top;
+}
+
+.prose thead th {
+  background: #f5f8fc;
+}
+
+.prose tbody th {
+  text-align: left;
+  background: #f9fbfd;
+  font-weight: 600;
+}
+
 .footer {
   border-top: 1px solid var(--line);
   background: #fff;
